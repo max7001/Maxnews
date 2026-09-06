@@ -15,7 +15,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("maxnews.server")
 
-app = FastAPI(title="MaxNews API", version="1.1")
+app = FastAPI(title="MaxNews API", version="1.3")
 
 # Abilita CORS per flessibilità (anche se servito localmente)
 app.add_middleware(
@@ -33,7 +33,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 async def get_app_settings():
     """Restituisce le impostazioni dell'app salvate su Firebase Firestore."""
     settings = await firebase_service.get_settings()
-    settings["version"] = "v1.1"
+    settings["version"] = "v1.3"
     return {"success": True, "settings": settings}
 
 
@@ -43,8 +43,8 @@ async def update_app_settings(settings: Dict[str, Any] = Body(...)):
     if not settings:
         raise HTTPException(status_code=400, detail="Dati impostazioni non validi")
     
-    # Assicuriamo che la versione v1.1 sia impostata
-    settings["version"] = "v1.1"
+    # Assicuriamo che la versione v1.3 sia impostata
+    settings["version"] = "v1.3"
         
     ok = await firebase_service.save_settings(settings)
     # Svuota la cache delle notizie per riflettere le nuove fonti/categorie

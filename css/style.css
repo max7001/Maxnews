@@ -913,14 +913,26 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 1rem;
+  padding: 0.85rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.category-config-item:hover {
+  border-color: #475569;
 }
 
 .category-config-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
+  gap: 0.5rem;
+}
+
+.category-config-item.expanded .category-config-top {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .category-config-label {
@@ -928,8 +940,68 @@ body {
   align-items: center;
   gap: 0.6rem;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
+  flex: 1;
+}
+
+.category-sources-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+}
+
+.category-config-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Simbolo dell'occhio per espandere/comprimere */
+.category-eye-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-eye-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+
+.category-eye-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--accent-blue);
+  color: #60a5fa;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25);
+}
+
+.category-config-item .sources-container {
+  display: none;
+}
+
+.category-config-item.expanded .sources-container {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Switch toggle */

@@ -28,6 +28,7 @@ DEFAULT_CATEGORIES = {
         "color": "#16a34a",
         "icon": "map-pin",
         "sources": [
+            {"id": "googlenews_legnano", "name": "Google News Legnano", "url": "https://news.google.com/rss/search?q=%22Legnano%22+when:2d&hl=it&gl=IT&ceid=IT:it", "enabled": True},
             {"id": "legnanonews", "name": "LegnanoNews", "url": "https://www.legnanonews.com/feed/", "enabled": True},
             {"id": "sempionenews", "name": "Sempione News", "url": "https://www.sempionenews.it/feed/", "enabled": True},
             {"id": "primamilanoovest", "name": "Prima Milano Ovest", "url": "https://primamilanoovest.it/feed/", "enabled": True}
@@ -40,6 +41,9 @@ DEFAULT_CATEGORIES = {
         "color": "#2563eb",
         "icon": "cpu",
         "sources": [
+            {"id": "garmin_enduro", "name": "Garmin Enduro 3", "url": "https://news.google.com/rss/search?q=%22Garmin+Enduro%22+OR+%22Enduro+3%22+when:7d&hl=it&gl=IT&ceid=IT:it", "enabled": True},
+            {"id": "google_pixel", "name": "Telefoni Google Pixel", "url": "https://news.google.com/rss/search?q=%22Google+Pixel%22+when:2d&hl=it&gl=IT&ceid=IT:it", "enabled": True},
+            {"id": "drone_antigravity", "name": "Drone Antigravity A1", "url": "https://news.google.com/rss/search?q=%22Antigravity+A1%22+OR+%22Drone+Antigravity%22+OR+Antigravity+drone&hl=it&gl=IT&ceid=IT:it", "enabled": True},
             {"id": "hdblog", "name": "HDblog", "url": "https://www.hdblog.it/feed/", "enabled": True},
             {"id": "wired", "name": "Wired Italia", "url": "https://www.wired.it/feed/rss", "enabled": True},
             {"id": "tomshw", "name": "Tom's Hardware", "url": "https://www.tomshw.it/feed/", "enabled": True}
@@ -88,9 +92,9 @@ DEFAULT_CATEGORIES = {
         "color": "#18181b",
         "icon": "shield",
         "sources": [
+            {"id": "googlenews_juve_seriea", "name": "Google News Juve Serie A", "url": "https://news.google.com/rss/search?q=%22Juventus%22+%22Serie+A%22+when:2d&hl=it&gl=IT&ceid=IT:it", "enabled": True},
             {"id": "tuttojuve", "name": "TuttoJuve", "url": "https://www.tuttojuve.com/rss", "enabled": True},
-            {"id": "juventusnews24", "name": "JuventusNews24", "url": "https://www.juventusnews24.com/feed/", "enabled": True},
-            {"id": "googlenews_juve", "name": "Google News Juve", "url": "https://news.google.com/rss/search?q=Juventus&hl=it&gl=IT&ceid=IT:it", "enabled": True}
+            {"id": "juventusnews24", "name": "JuventusNews24", "url": "https://www.juventusnews24.com/feed/", "enabled": True}
         ]
     },
     "tesla": {
@@ -108,7 +112,7 @@ DEFAULT_CATEGORIES = {
 }
 
 DEFAULT_SETTINGS = {
-    "version": "v1.1",
+    "version": "v1.3",
     "theme": "dark",
     "categories": DEFAULT_CATEGORIES
 }

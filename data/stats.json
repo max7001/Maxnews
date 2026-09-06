@@ -1,5 +1,26 @@
 {
+  "total_reads": 4,
+  "categories_reads": {
+    "legnano": 3,
+    "tecnologia": 0,
+    "cronaca_italia": 0,
+    "cronaca_estera": 0,
+    "economia": 0,
+    "juventus": 1,
+    "tesla": 0
+  },
+  "total_searches": 2,
+  "recent_searches": [
+    "Tesla Cybercab",
+    "Tesla"
+  ],
   "recent_reads": [
+    {
+      "title": "Probabili formazioni Juve Milan: le possibili scelte di Spalletti per il big match dello Stadium",
+      "category": "juventus",
+      "source": "JuventusNews24",
+      "timestamp": ""
+    },
     {
       "title": "Incendio in un edificio, evacuato un ostello",
       "category": "legnano",
@@ -18,20 +39,5 @@
       "source": "LegnanoNews",
       "timestamp": ""
     }
-  ],
-  "recent_searches": [
-    "Tesla Cybercab",
-    "Tesla"
-  ],
-  "total_reads": 3,
-  "total_searches": 2,
-  "categories_reads": {
-    "legnano": 3,
-    "tecnologia": 0,
-    "cronaca_italia": 0,
-    "cronaca_estera": 0,
-    "economia": 0,
-    "juventus": 0,
-    "tesla": 0
-  }
+  ]
 }

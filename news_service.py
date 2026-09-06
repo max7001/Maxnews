@@ -264,6 +264,63 @@ async def fetch_category_news(category: Dict[str, Any]) -> List[Dict[str, Any]]:
             articles = await parse_rss_feed(src_url, src_name, cat_id, cat_name, cat_color)
             all_articles.extend(articles)
 
+    # 1. Filtro tassativo per LEGNANO: deve riguardare esplicitamente la città di Legnano
+    if cat_id == "legnano":
+        def _is_explicitly_legnano(item):
+            text = (item.get("title", "") + " " + item.get("summary", "")).lower()
+            return bool(re.search(r'\blegnan[oaie]\b|palio di legnano|città di legnano|comune di legnano|sindaco di legnano|ac legnano|knights legnano', text, re.IGNORECASE))
+        all_articles = [art for art in all_articles if _is_explicitly_legnano(art)]
+
+    # 2. Filtro tassativo per JUVENTUS: deve riguardare esplicitamente la prima squadra maschile di Serie A
+    elif cat_id == "juventus":
+        def _is_explicitly_juve_serie_a(item):
+            title = item.get("title", "").lower()
+            summary = item.get("summary", "").lower()
+            full_text = title + " " + summary
+
+            # Deve citare Juventus o Juve
+            if not re.search(r'\b(juventus|juve|juventin[oaei])\b', full_text, re.IGNORECASE):
+                return False
+
+            # Scarta notizie esplicitamente dedicate a femminile, women, next gen, primavera o giovanili
+            excluded_keywords = [
+                "women", "femminil", "next gen", "nextgen", "serie c", 
+                "under 19", "under 17", "under 16", "under 15", "under 18", "under 20",
+                "primavera"
+            ]
+            for ex in excluded_keywords:
+                if ex in title:
+                    return False
+            return True
+        all_articles = [art for art in all_articles if _is_explicitly_juve_serie_a(art)]
+
+    # 3. Priorità per TECNOLOGIA: dai la precedenza a Garmin Enduro 3, telefoni Google Pixel, Drone Antigravity A1
+    elif cat_id == "tecnologia":
+        for art in all_articles:
+            t = (art.get("title", "") + " " + art.get("summary", "")).lower()
+            score = 0
+            badge = ""
+            if "garmin enduro" in t or "enduro 3" in t:
+                score += 1000
+                badge = "⚡ In Evidenza: Garmin Enduro 3"
+            elif "google pixel" in t or "pixel 9" in t or "pixel 8" in t or "telefoni pixel" in t or "pixel fold" in t:
+                score += 900
+                badge = "⚡ In Evidenza: Google Pixel"
+            elif "antigravity" in t or "drone antigravity" in t or "antigravity a1" in t:
+                score += 850
+                badge = "⚡ In Evidenza: Drone Antigravity A1"
+            elif "garmin" in t:
+                score += 300
+            elif "pixel" in t:
+                score += 200
+
+            art["priority_score"] = score
+            if badge:
+                art["priority_badge"] = badge
+
+        all_articles.sort(key=lambda x: (x.get("priority_score", 0), x.get("timestamp", 0)), reverse=True)
+        return all_articles
+
     # Ordina per timestamp decrescente
     all_articles.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
     return all_articles
@@ -405,13 +462,29 @@ async def get_article_detail(url: str, title: str = "", category_id: str = "") -
                     # Video incorporati
                     for iframe in article_elem.find_all("iframe"):
                         src = iframe.get("src", "")
-                        if "youtube.com/embed" in src or "youtu.be" in src:
+                        if "youtube.com/embed/" in src:
                             clean_embed = src if src.startswith("http") else "https:" + src
                             result["videos"].append({
                                 "type": "youtube",
                                 "src": clean_embed,
                                 "title": "Video correlato"
                             })
+                        elif "youtube.com/watch" in src:
+                            m = re.search(r'v=([a-zA-Z0-9_-]+)', src)
+                            if m:
+                                result["videos"].append({
+                                    "type": "youtube",
+                                    "src": f"https://www.youtube.com/embed/{m.group(1)}",
+                                    "title": "Video correlato"
+                                })
+                        elif "youtu.be/" in src:
+                            m = re.search(r'youtu\.be/([a-zA-Z0-9_-]+)', src)
+                            if m:
+                                result["videos"].append({
+                                    "type": "youtube",
+                                    "src": f"https://www.youtube.com/embed/{m.group(1)}",
+                                    "title": "Video correlato"
+                                })
                         elif "vimeo.com" in src:
                             result["videos"].append({
                                 "type": "vimeo",
@@ -475,14 +548,7 @@ async def get_article_detail(url: str, title: str = "", category_id: str = "") -
             "Fai clic sul pulsante sottostante 'Apri articolo originale sulla fonte' per accedere alla pubblicazione originaria."
         ]
 
-    # Servizio video / approfondimento video YouTube su misura per la notizia
-    if not result["videos"] and result["title"]:
-        clean_keywords = re.sub(r'[^a-zA-Z0-9\sàèéìòù]', '', result["title"])
-        encoded_title = urllib.parse.quote(clean_keywords[:60])
-        result["videos"].append({
-            "type": "youtube_search",
-            "src": f"https://www.youtube-nocookie.com/embed?listType=search&list={encoded_title}",
-            "title": f"Servizio video e approfondimento multimediale"
-        })
-
+    # Regola: Se un video non è visualizzabile non mostrarlo.
+    # Non aggiungiamo alcun video fittizio o fallback di ricerca non verificato:
+    # result["videos"] conterrà unicamente video realmente presenti nell'articolo originale.
     return result

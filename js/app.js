@@ -111,6 +111,7 @@ const STANDALONE_CATEGORIES = {
   legnano: {
     id: "legnano", name: "Legnano", enabled: true, color: "#16a34a", icon: "map-pin",
     sources: [
+      { id: "googlenews_legnano", name: "Google News Legnano", url: "https://news.google.com/rss/search?q=%22Legnano%22+when:2d&hl=it&gl=IT&ceid=IT:it", enabled: true },
       { id: "legnanonews", name: "LegnanoNews", url: "https://www.legnanonews.com/feed/", enabled: true },
       { id: "sempionenews", name: "Sempione News", url: "https://www.sempionenews.it/feed/", enabled: true },
       { id: "primamilanoovest", name: "Prima Milano Ovest", url: "https://primamilanoovest.it/feed/", enabled: true }
@@ -119,6 +120,9 @@ const STANDALONE_CATEGORIES = {
   tecnologia: {
     id: "tecnologia", name: "Tecnologia", enabled: true, color: "#2563eb", icon: "cpu",
     sources: [
+      { id: "garmin_enduro", name: "Garmin Enduro 3", url: "https://news.google.com/rss/search?q=%22Garmin+Enduro%22+OR+%22Enduro+3%22+when:7d&hl=it&gl=IT&ceid=IT:it", enabled: true },
+      { id: "google_pixel", name: "Telefoni Google Pixel", url: "https://news.google.com/rss/search?q=%22Google+Pixel%22+when:2d&hl=it&gl=IT&ceid=IT:it", enabled: true },
+      { id: "drone_antigravity", name: "Drone Antigravity A1", url: "https://news.google.com/rss/search?q=%22Antigravity+A1%22+OR+%22Drone+Antigravity%22+OR+Antigravity+drone&hl=it&gl=IT&ceid=IT:it", enabled: true },
       { id: "hdblog", name: "HDblog", url: "https://www.hdblog.it/feed/", enabled: true },
       { id: "wired", name: "Wired Italia", url: "https://www.wired.it/feed/rss", enabled: true },
       { id: "tomshw", name: "Tom's Hardware", url: "https://www.tomshw.it/feed/", enabled: true }
@@ -151,9 +155,9 @@ const STANDALONE_CATEGORIES = {
   juventus: {
     id: "juventus", name: "Juventus", enabled: true, color: "#18181b", icon: "shield",
     sources: [
+      { id: "googlenews_juve_seriea", name: "Google News Juve Serie A", url: "https://news.google.com/rss/search?q=%22Juventus%22+%22Serie+A%22+when:2d&hl=it&gl=IT&ceid=IT:it", enabled: true },
       { id: "tuttojuve", name: "TuttoJuve", url: "https://www.tuttojuve.com/rss", enabled: true },
-      { id: "juventusnews24", name: "JuventusNews24", url: "https://www.juventusnews24.com/feed/", enabled: true },
-      { id: "googlenews_juve", name: "Google News Juve", url: "https://news.google.com/rss/search?q=Juventus+when:2d&hl=it&gl=IT&ceid=IT:it", enabled: true }
+      { id: "juventusnews24", name: "JuventusNews24", url: "https://www.juventusnews24.com/feed/", enabled: true }
     ]
   },
   tesla: {
@@ -221,6 +225,46 @@ function parseClientRSS(xmlText, sourceName, categoryId, categoryName, categoryC
 
       const cleanDesc = desc.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
+      // 1. Filtro Legnano: deve riguardare esplicitamente la città di Legnano
+      if (categoryId === 'legnano') {
+        const text = (title + ' ' + cleanDesc).toLowerCase();
+        if (!/\blegnan[oaie]\b|palio di legnano|città di legnano|comune di legnano|ac legnano|knights legnano/.test(text)) {
+          return;
+        }
+      }
+
+      // 2. Filtro Juventus: maschile Serie A, esclusione femminile, giovanili, next gen
+      if (categoryId === 'juventus') {
+        const text = (title + ' ' + cleanDesc).toLowerCase();
+        if (!/\b(juventus|juve|juventin[oaei])\b/.test(text)) {
+          return;
+        }
+        if (/women|femminil|next gen|nextgen|serie c|under 19|under 17|under 16|primavera/.test(title.toLowerCase())) {
+          return;
+        }
+      }
+
+      // 3. Priorità Tecnologia: Garmin Enduro 3, Google Pixel, Drone Antigravity A1
+      let priorityScore = 0;
+      let priorityBadge = '';
+      if (categoryId === 'tecnologia') {
+        const t = (title + ' ' + cleanDesc).toLowerCase();
+        if (t.includes('garmin enduro') || t.includes('enduro 3')) {
+          priorityScore = 1000;
+          priorityBadge = '⚡ In Evidenza: Garmin Enduro 3';
+        } else if (t.includes('google pixel') || t.includes('pixel 9') || t.includes('pixel 8') || t.includes('telefoni pixel') || t.includes('pixel fold')) {
+          priorityScore = 900;
+          priorityBadge = '⚡ In Evidenza: Google Pixel';
+        } else if (t.includes('antigravity') || t.includes('drone antigravity') || t.includes('antigravity a1')) {
+          priorityScore = 850;
+          priorityBadge = '⚡ In Evidenza: Drone Antigravity A1';
+        } else if (t.includes('garmin')) {
+          priorityScore = 300;
+        } else if (t.includes('pixel')) {
+          priorityScore = 200;
+        }
+      }
+
       articles.push({
         id: btoa(unescape(encodeURIComponent(link + title))).slice(0, 20),
         title: title.replace(/\s+-\s+[^-]+$/, '').trim(),
@@ -232,6 +276,8 @@ function parseClientRSS(xmlText, sourceName, categoryId, categoryName, categoryC
         category_id: categoryId,
         category_name: categoryName,
         category_color: categoryColor,
+        priority_score: priorityScore,
+        priority_badge: priorityBadge,
         pub_date: formatRelativeTime(pubDate),
         timestamp: pubDate.getTime() / 1000
       });
@@ -269,14 +315,14 @@ async function apiGetSettings() {
     try { return JSON.parse(saved); } catch (e) {}
   }
   return {
-    version: "v1.1",
+    version: "v1.2",
     theme: "dark",
     categories: STANDALONE_CATEGORIES
   };
 }
 
 async function apiSaveSettings(settings) {
-  settings.version = "v1.1";
+  settings.version = "v1.2";
   localStorage.setItem('maxnews_settings', JSON.stringify(settings));
   try {
     const res = await fetch('/api/settings', {
@@ -292,7 +338,7 @@ async function apiSaveSettings(settings) {
 }
 
 async function apiResetSettings() {
-  const def = { version: "v1.1", theme: "dark", categories: STANDALONE_CATEGORIES };
+  const def = { version: "v1.3", theme: "dark", categories: STANDALONE_CATEGORIES };
   localStorage.removeItem('maxnews_settings');
   try {
     const res = await fetch('/api/settings/reset', { method: 'POST' });
@@ -329,7 +375,7 @@ async function apiGetNews(category = 'all', refresh = false) {
           }
         }
       }
-      catArticles.sort((a, b) => b.timestamp - a.timestamp);
+      catArticles.sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0) || b.timestamp - a.timestamp);
       resultsByCat[catId] = {
         id: catId, name: cat.name, color: cat.color, articles: catArticles
       };
@@ -337,7 +383,7 @@ async function apiGetNews(category = 'all', refresh = false) {
     }
   }
 
-  unified.sort((a, b) => b.timestamp - a.timestamp);
+  unified.sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0) || b.timestamp - a.timestamp);
   return {
     success: true,
     category_filter: category,
@@ -529,9 +575,15 @@ function createNewsCard(article) {
   const imgSrc = article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80';
   const categoryColor = article.category_color || '#3b82f6';
   const categoryName = article.category_name || 'News';
+  const priorityBadgeHtml = article.priority_badge ? `
+    <span class="card-priority-badge" style="position: absolute; top: 10px; left: 10px; background: rgba(37, 99, 235, 0.92); color: white; padding: 4px 9px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.35); backdrop-filter: blur(4px); z-index: 2; border: 1px solid rgba(255,255,255,0.2);">
+      ${escapeHtml(article.priority_badge)}
+    </span>
+  ` : '';
 
   card.innerHTML = `
     <div class="card-image-wrap">
+      ${priorityBadgeHtml}
       <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(article.title)}" class="card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80'">
       <span class="card-category-badge" style="background:${categoryColor};">${escapeHtml(categoryName)}</span>
     </div>
@@ -619,12 +671,19 @@ async function openArticleModal(article) {
       DOM.modalArticleContent.innerHTML = det.content_paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
     }
 
-    // Video incorporati o servizi video YouTube correlati
-    if (det.videos && det.videos.length > 0) {
+    // Video incorporati verificati ("Se un video non è visualizzabile non mostrarlo")
+    if (det.videos && det.videos.length > 0 && det.videos[0].src) {
       const v = det.videos[0];
+      DOM.modalVideoIframe.onerror = function() {
+        DOM.modalVideoSection.style.display = 'none';
+        DOM.modalVideoIframe.src = '';
+      };
       DOM.modalVideoIframe.src = v.src;
       DOM.modalVideoLabel.textContent = v.title || 'Filmato e approfondimento video';
       DOM.modalVideoSection.style.display = 'block';
+    } else {
+      DOM.modalVideoSection.style.display = 'none';
+      DOM.modalVideoIframe.src = '';
     }
 
     // Galleria foto aggiuntive
@@ -660,8 +719,9 @@ function closeArticleModal() {
   DOM.articleModal.classList.remove('open');
   DOM.articleModal.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
-  // Ferma eventuali video in riproduzione
+  // Ferma e nasconde eventuali video in riproduzione
   DOM.modalVideoIframe.src = '';
+  DOM.modalVideoSection.style.display = 'none';
 }
 
 // ==========================================
@@ -687,13 +747,27 @@ function toggleSettingsAccordion() {
 function renderSettingsCategories() {
   if (!AppState.settings || !AppState.settings.categories) return;
 
+  AppState.expandedCategories = AppState.expandedCategories || {};
   const categories = AppState.settings.categories;
   DOM.categoriesConfigList.innerHTML = '';
 
+  // Barra comandi rapida: Espandi tutte / Comprimi tutte
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0 0.25rem; font-size: 0.82rem; color: var(--text-secondary); flex-wrap: wrap; gap: 0.5rem;';
+  toolbar.innerHTML = `
+    <span>Tocca il <strong>simbolo dell'occhio 👁️</strong> per visualizzare le fonti:</span>
+    <div style="display: flex; gap: 0.4rem;">
+      <button type="button" id="expandAllCategoriesBtn" class="btn-sm" style="font-size:0.75rem; padding: 3px 8px; cursor:pointer;">Espandi tutte</button>
+      <button type="button" id="collapseAllCategoriesBtn" class="btn-sm" style="font-size:0.75rem; padding: 3px 8px; cursor:pointer;">Comprimi tutte</button>
+    </div>
+  `;
+  DOM.categoriesConfigList.appendChild(toolbar);
+
   Object.keys(categories).forEach(catId => {
     const cat = categories[catId];
+    const isExpanded = !!AppState.expandedCategories[catId];
     const catItem = document.createElement('div');
-    catItem.className = 'category-config-item';
+    catItem.className = `category-config-item ${isExpanded ? 'expanded' : ''}`;
     catItem.dataset.id = catId;
 
     // Lista fonti per questa categoria
@@ -714,14 +788,26 @@ function renderSettingsCategories() {
         <label class="category-config-label" for="toggle_${catId}">
           <span class="category-indicator" style="background:${cat.color || '#3b82f6'};"></span>
           <span>${escapeHtml(cat.name)}</span>
+          <span class="category-sources-badge">${(cat.sources || []).length} fonti</span>
         </label>
-        <label class="switch">
-          <input type="checkbox" id="toggle_${catId}" data-cat="${catId}" ${cat.enabled ? 'checked' : ''}>
-          <span class="slider"></span>
-        </label>
+
+        <div class="category-config-controls">
+          <!-- Simbolo dell'occhio per espandere / comprimere -->
+          <button type="button" class="category-eye-btn ${isExpanded ? 'active' : ''}" data-cat="${catId}" title="${isExpanded ? 'Comprimi fonti (Nascondi)' : 'Espandi fonti (Mostra)'}" aria-label="Espandi o comprimi fonti">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+          </button>
+
+          <label class="switch" title="Attiva/disattiva categoria">
+            <input type="checkbox" id="toggle_${catId}" data-cat="${catId}" ${cat.enabled ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
 
-      <div class="sources-container">
+      <div class="sources-container" id="sourcesContainer_${catId}">
         <div class="sources-label">Fonti Configurate (${(cat.sources || []).length})</div>
         <div class="sources-list" id="sourcesList_${catId}">
           ${sourcesHtml || '<div style="color:var(--text-muted); font-size:0.8rem;">Nessuna fonte configurata.</div>'}
@@ -737,6 +823,34 @@ function renderSettingsCategories() {
     `;
 
     DOM.categoriesConfigList.appendChild(catItem);
+  });
+
+  // Event listener pulsante occhio per espandere/comprimere singola categoria
+  DOM.categoriesConfigList.querySelectorAll('.category-eye-btn').forEach(eyeBtn => {
+    eyeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const catId = eyeBtn.dataset.cat;
+      const isCurrentlyExpanded = !!AppState.expandedCategories[catId];
+      AppState.expandedCategories[catId] = !isCurrentlyExpanded;
+      
+      const catItem = eyeBtn.closest('.category-config-item');
+      if (catItem) {
+        const newState = AppState.expandedCategories[catId];
+        catItem.classList.toggle('expanded', newState);
+        eyeBtn.classList.toggle('active', newState);
+        eyeBtn.title = newState ? 'Comprimi fonti (Nascondi)' : 'Espandi fonti (Mostra)';
+      }
+    });
+  });
+
+  // Toolbar Espandi Tutte / Comprimi Tutte
+  document.getElementById('expandAllCategoriesBtn')?.addEventListener('click', () => {
+    Object.keys(categories).forEach(id => AppState.expandedCategories[id] = true);
+    renderSettingsCategories();
+  });
+  document.getElementById('collapseAllCategoriesBtn')?.addEventListener('click', () => {
+    Object.keys(categories).forEach(id => AppState.expandedCategories[id] = false);
+    renderSettingsCategories();
   });
 
   // Event listener per checkbox attivazione categoria
