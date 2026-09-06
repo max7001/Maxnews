@@ -15,7 +15,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("maxnews.server")
 
-app = FastAPI(title="MaxNews API", version="1.3")
+app = FastAPI(title="MaxNews API", version="1.4")
 
 # Abilita CORS per flessibilità (anche se servito localmente)
 app.add_middleware(
@@ -33,7 +33,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 async def get_app_settings():
     """Restituisce le impostazioni dell'app salvate su Firebase Firestore."""
     settings = await firebase_service.get_settings()
-    settings["version"] = "v1.3"
+    settings["version"] = "v1.4"
     return {"success": True, "settings": settings}
 
 
@@ -43,8 +43,8 @@ async def update_app_settings(settings: Dict[str, Any] = Body(...)):
     if not settings:
         raise HTTPException(status_code=400, detail="Dati impostazioni non validi")
     
-    # Assicuriamo che la versione v1.3 sia impostata
-    settings["version"] = "v1.3"
+    # Assicuriamo che la versione v1.4 sia impostata
+    settings["version"] = "v1.4"
         
     ok = await firebase_service.save_settings(settings)
     # Svuota la cache delle notizie per riflettere le nuove fonti/categorie
@@ -98,15 +98,27 @@ async def get_news(category: Optional[str] = None, refresh: bool = False):
 
 @app.get("/api/search")
 async def search_news(q: str = Query(..., min_length=1)):
-    """Esegue una ricerca online di notizie in tempo reale su Google News."""
-    results = await news_service.search_online_news(q)
+    """
+    Esegue una ricerca multi-tier con precedenza alle notizie delle categorie
+    seguite da Google News / web search, e genera la sintesi intelligente Google Gemini.
+    """
+    settings = await firebase_service.get_settings()
+    categories = settings.get("categories", {})
+
+    search_data = await news_service.search_news_multi_tier(q, categories)
+    gemini_result = await news_service.generate_gemini_briefing(q, search_data["combined"])
+
     # Registra ricerca nelle statistiche su Firebase
     await firebase_service.track_search(q)
+
     return {
         "success": True,
         "query": q,
-        "count": len(results),
-        "results": results
+        "gemini_result": gemini_result,
+        "count": len(search_data["combined"]),
+        "category_matches_count": len(search_data["category_results"]),
+        "google_matches_count": len(search_data["google_results"]),
+        "results": search_data["combined"]
     }
 
 

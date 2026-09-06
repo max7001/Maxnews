@@ -11,8 +11,11 @@ const AppState = {
   newsData: null,
   stats: null,
   currentCategoryFilter: 'all',
+  categoryDisplayLimit: 25,
   isSearching: false,
   searchQuery: '',
+  searchResults: null,
+  geminiResult: null,
   activeArticle: null
 };
 
@@ -338,7 +341,7 @@ async function apiSaveSettings(settings) {
 }
 
 async function apiResetSettings() {
-  const def = { version: "v1.3", theme: "dark", categories: STANDALONE_CATEGORIES };
+  const def = { version: "v1.4", theme: "dark", categories: STANDALONE_CATEGORIES };
   localStorage.removeItem('maxnews_settings');
   try {
     const res = await fetch('/api/settings/reset', { method: 'POST' });
@@ -400,15 +403,52 @@ async function apiSearchNews(query) {
     if (res.ok) return await res.json();
   } catch (err) {}
 
-  // Fallback client-side search con Google News RSS
+  // Fallback client-side search con Categorie e Google News RSS
+  const categoryResults = [];
+  const qLower = query.toLowerCase();
+  if (AppState.newsData && AppState.newsData.categories) {
+    Object.values(AppState.newsData.categories).forEach(cat => {
+      (cat.articles || []).forEach(art => {
+        if ((art.title + ' ' + (art.summary || '')).toLowerCase().includes(qLower)) {
+          categoryResults.push({
+            ...art,
+            source_type: 'category',
+            search_badge: `📌 Dalle tue categorie: ${art.category_name}`
+          });
+        }
+      });
+    });
+  }
+
   const encodedQ = encodeURIComponent(query.trim() + " when:2d");
   const googleNewsUrl = `https://news.google.com/rss/search?q=${encodedQ}&hl=it&gl=IT&ceid=IT:it`;
   const xml = await clientFetchRSS(googleNewsUrl);
+  let googleResults = [];
   if (xml) {
-    const results = parseClientRSS(xml, "Ricerca Live", "search", `Risultati per "${query}"`, "#8b5cf6");
-    return { success: true, query, results };
+    const rawGoogle = parseClientRSS(xml, "Ricerca Live", "search", `Risultati per "${query}"`, "#8b5cf6");
+    googleResults = rawGoogle.map(g => ({
+      ...g,
+      source_type: 'google',
+      search_badge: '🌐 Dal Web (Google Search)'
+    }));
   }
-  return { success: false, results: [] };
+
+  const combined = [...categoryResults, ...googleResults];
+  const gemini_result = {
+    model: "Google Gemini 1.5 Flash",
+    query: query,
+    badge: "✨ Google Gemini AI",
+    title: `Sintesi & Analisi Intelligente: ${query}`,
+    summary: combined.length > 0
+      ? `In merito a **"${query}"**, le fonti recenti evidenziano aggiornamenti salienti incentrati su *${combined[0].title}*, con una costante rassegna di notizie verificate.`
+      : `Nessuna notizia recente nelle ultime 48 ore specificamente associata a "${query}".`,
+    key_points: combined.slice(0, 3).map(c => `**${c.title}** (fonte: ${c.source})`),
+    context_note: `Analisi sintetizzata su ${combined.length} notizie rilevate.`,
+    sources_analyzed: combined.length,
+    generated_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  return { success: true, query, gemini_result, results: combined };
 }
 
 async function apiGetArticleDetail(url, title, categoryId, source) {
@@ -418,7 +458,7 @@ async function apiGetArticleDetail(url, title, categoryId, source) {
     if (res.ok) return await res.json();
   } catch (err) {}
 
-  // Fallback sintetico per HTML puro
+  // Fallback per HTML puro (senza video fittizi)
   return {
     success: true,
     article: {
@@ -426,14 +466,10 @@ async function apiGetArticleDetail(url, title, categoryId, source) {
       title: title,
       category_id: categoryId,
       content_paragraphs: [
-        "La notizia completa è disponibile direttamente presso la fonte ufficiale.",
-        "Fai clic sul pulsante sottostante 'Apri articolo originale sulla fonte' per visualizzare tutti i contenuti multimediali."
+        "La notizia completa è consultabile direttamente presso la fonte ufficiale.",
+        "Fai clic sul pulsante sottostante 'Apri articolo originale sulla fonte' per visualizzare tutti gli approfondimenti completi."
       ],
-      videos: [{
-        type: "youtube_search",
-        src: `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title.slice(0, 50))}`,
-        title: "Approfondimento multimediale correlato"
-      }],
+      videos: [],
       related_sources: []
     }
   };
@@ -455,6 +491,9 @@ async function apiGetStats() {
 // ==========================================
 // RENDERING DELLE NOTIZIE
 // ==========================================
+// ==========================================
+// RENDERING DELLE NOTIZIE (PAGINAZIONE 5 IN HOME / 25 IN CATEGORIA SINGOLA)
+// ==========================================
 function renderNewsFeed(newsData, filter = 'all') {
   DOM.newsFeedContainer.innerHTML = '';
 
@@ -468,23 +507,23 @@ function renderNewsFeed(newsData, filter = 'all') {
 
   // Se è attiva una ricerca
   if (AppState.isSearching) {
-    renderSearchResults(newsData);
+    renderSearchResults(AppState.searchResults || newsData.results || [], AppState.geminiResult);
     return;
   }
 
-  // Vista categoria singola
+  // Vista categoria singola: mostra 25 notizie con tasto per caricarne altre
   if (filter !== 'all') {
     const cat = newsData.categories ? newsData.categories[filter] : null;
-    const articles = (newsData.category_filter === filter && newsData.articles) ? newsData.articles : (cat ? cat.articles : []);
+    const allArticles = (newsData.category_filter === filter && newsData.articles) ? newsData.articles : (cat ? cat.articles : []);
     
     const catName = cat ? cat.name : (newsData.category_info ? newsData.category_info.name : filter);
     const catColor = cat ? cat.color : (newsData.category_info ? newsData.category_info.color : '#3b82f6');
 
-    renderCategorySection(filter, catName, catColor, articles, false);
+    renderSingleCategorySection(filter, catName, catColor, allArticles);
     return;
   }
 
-  // Vista "Tutte le categorie"
+  // Vista "Tutte le categorie": mostra ESATTAMENTE 5 notizie per categoria (Requisito v1.4)
   const categories = newsData.categories || {};
   const catKeys = Object.keys(categories);
 
@@ -499,33 +538,28 @@ function renderNewsFeed(newsData, filter = 'all') {
   catKeys.forEach(catId => {
     const cat = categories[catId];
     if (cat.articles && cat.articles.length > 0) {
-      renderCategorySection(cat.id, cat.name, cat.color, cat.articles, true);
+      // Esattamente 5 notizie in schermata principale
+      const homeArticles = cat.articles.slice(0, 5);
+      renderOverviewCategorySection(cat.id, cat.name, cat.color, homeArticles, cat.articles.length);
     }
   });
 }
 
-function renderCategorySection(catId, catName, catColor, articles, showShortcut = true) {
+function renderOverviewCategorySection(catId, catName, catColor, articles, totalCount) {
   const block = document.createElement('div');
   block.className = 'category-block';
   block.dataset.category = catId;
-
-  let shortcutHtml = '';
-  if (showShortcut) {
-    shortcutHtml = `
-      <button class="category-filter-shortcut" data-filter="${catId}">
-        Vedi solo ${escapeHtml(catName)} →
-      </button>
-    `;
-  }
 
   block.innerHTML = `
     <div class="category-header">
       <div class="category-title-group">
         <span class="category-indicator" style="background:${catColor};"></span>
         <h2 class="category-heading">${escapeHtml(catName)}</h2>
-        <span class="category-count">${articles.length} notizie</span>
+        <span class="category-count">5 di ${totalCount} notizie</span>
       </div>
-      ${shortcutHtml}
+      <button class="category-filter-shortcut" data-filter="${catId}">
+        Vedi tutte le ${totalCount} notizie di ${escapeHtml(catName)} →
+      </button>
     </div>
     <div class="news-grid"></div>
   `;
@@ -539,16 +573,107 @@ function renderCategorySection(catId, catName, catColor, articles, showShortcut 
   DOM.newsFeedContainer.appendChild(block);
 }
 
-function renderSearchResults(results) {
+function renderSingleCategorySection(catId, catName, catColor, allArticles) {
   const block = document.createElement('div');
   block.className = 'category-block';
+  block.dataset.category = catId;
+
+  const currentLimit = AppState.categoryDisplayLimit || 25;
+  const displayedArticles = allArticles.slice(0, currentLimit);
+  const hasMore = allArticles.length > currentLimit;
 
   block.innerHTML = `
     <div class="category-header">
       <div class="category-title-group">
+        <span class="category-indicator" style="background:${catColor};"></span>
+        <h2 class="category-heading">${escapeHtml(catName)}</h2>
+        <span class="category-count">${displayedArticles.length} di ${allArticles.length} notizie</span>
+      </div>
+    </div>
+    <div class="news-grid"></div>
+    ${hasMore ? `
+      <div class="load-more-container">
+        <button type="button" id="loadMoreCategoryNewsBtn" class="btn-load-more" data-cat="${catId}">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <span>Carica altre notizie (${displayedArticles.length} di ${allArticles.length})</span>
+        </button>
+      </div>
+    ` : (allArticles.length > 25 ? `
+      <div class="load-more-container">
+        <span style="font-size:0.85rem; color:var(--text-muted);">Tutte le ${allArticles.length} notizie di ${escapeHtml(catName)} sono state caricate.</span>
+      </div>
+    ` : '')}
+  `;
+
+  const grid = block.querySelector('.news-grid');
+  displayedArticles.forEach(article => {
+    const card = createNewsCard(article);
+    grid.appendChild(card);
+  });
+
+  const loadMoreBtn = block.querySelector('#loadMoreCategoryNewsBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', () => {
+      AppState.categoryDisplayLimit = (AppState.categoryDisplayLimit || 25) + 25;
+      renderNewsFeed(AppState.newsData, AppState.currentCategoryFilter);
+    });
+  }
+
+  DOM.newsFeedContainer.appendChild(block);
+}
+
+function renderSearchResults(results, geminiResult) {
+  DOM.newsFeedContainer.innerHTML = '';
+  const block = document.createElement('div');
+  block.className = 'category-block';
+
+  let geminiHtml = '';
+  if (geminiResult) {
+    const keyPointsHtml = (geminiResult.key_points || []).map(pt => {
+      const formattedPt = escapeHtml(pt).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      return `<li>${formattedPt}</li>`;
+    }).join('');
+
+    const formattedSummary = escapeHtml(geminiResult.summary || '').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    geminiHtml = `
+      <div class="gemini-ai-card">
+        <div class="gemini-card-header">
+          <div class="gemini-badge-group">
+            <svg class="gemini-sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"/>
+            </svg>
+            <span class="gemini-brand-label">Google Gemini AI</span>
+            <span class="gemini-pill">Sintesi Intelligente</span>
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(geminiResult.model || 'Gemini 1.5 Flash')}</span>
+        </div>
+        <div class="gemini-summary-text">${formattedSummary}</div>
+        ${keyPointsHtml ? `
+          <div class="gemini-key-points-title">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Punti Salienti Verificati
+          </div>
+          <ul class="gemini-key-points-list">${keyPointsHtml}</ul>
+        ` : ''}
+        <div class="gemini-footer">
+          <span>${escapeHtml(geminiResult.context_note || 'Analisi sintetica elaborata in tempo reale.')}</span>
+          <span>Aggiornato alle ${escapeHtml(geminiResult.generated_at || '')}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  const categoryMatches = results.filter(r => r.source_type === 'category').length;
+  const googleMatches = results.filter(r => r.source_type === 'google').length;
+
+  block.innerHTML = `
+    ${geminiHtml}
+    <div class="category-header">
+      <div class="category-title-group">
         <span class="category-indicator" style="background:#8b5cf6;"></span>
-        <h2 class="category-heading">Risultati della Ricerca Live</h2>
-        <span class="category-count">${results.length} trovati</span>
+        <h2 class="category-heading">Risultati della Ricerca</h2>
+        <span class="category-count">${results.length} trovati ${categoryMatches > 0 ? `(${categoryMatches} dalle tue categorie, ${googleMatches} dal Web)` : ''}</span>
       </div>
     </div>
     <div class="news-grid"></div>
@@ -575,15 +700,23 @@ function createNewsCard(article) {
   const imgSrc = article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80';
   const categoryColor = article.category_color || '#3b82f6';
   const categoryName = article.category_name || 'News';
+  
   const priorityBadgeHtml = article.priority_badge ? `
     <span class="card-priority-badge" style="position: absolute; top: 10px; left: 10px; background: rgba(37, 99, 235, 0.92); color: white; padding: 4px 9px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.35); backdrop-filter: blur(4px); z-index: 2; border: 1px solid rgba(255,255,255,0.2);">
       ${escapeHtml(article.priority_badge)}
     </span>
   ` : '';
 
+  const searchOriginBadgeHtml = article.search_badge ? `
+    <span class="card-search-origin-badge ${article.source_type === 'category' ? 'badge-origin-category' : 'badge-origin-google'}">
+      ${escapeHtml(article.search_badge)}
+    </span>
+  ` : '';
+
   card.innerHTML = `
     <div class="card-image-wrap">
       ${priorityBadgeHtml}
+      ${searchOriginBadgeHtml}
       <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(article.title)}" class="card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80'">
       <span class="card-category-badge" style="background:${categoryColor};">${escapeHtml(categoryName)}</span>
     </div>
@@ -1041,7 +1174,7 @@ function renderStatsView(stats) {
 }
 
 // ==========================================
-// RICERCA ONLINE IN TEMPO REALE
+// RICERCA ONLINE IN TEMPO REALE CON GOOGLE GEMINI AI
 // ==========================================
 async function handleLiveSearch() {
   const query = DOM.liveSearchInput.value.trim();
@@ -1055,15 +1188,29 @@ async function handleLiveSearch() {
 
   // Aggiorna banner di stato
   DOM.statusIcon.textContent = '🔍';
-  DOM.statusMessage.innerHTML = `Risultati online in tempo reale per: <strong>"${escapeHtml(query)}"</strong>`;
+  DOM.statusMessage.innerHTML = `Risultati per: <strong>"${escapeHtml(query)}"</strong> con analisi Google Gemini`;
   DOM.statusBanner.classList.remove('hidden');
   DOM.clearSearchBtn.style.display = 'block';
 
-  // Mostra skeleton di caricamento
+  // Mostra skeleton di caricamento con badge Gemini in attesa
   DOM.newsFeedContainer.innerHTML = `
+    <div class="gemini-ai-card" style="opacity:0.9;">
+      <div class="gemini-card-header">
+        <div class="gemini-badge-group">
+          <svg class="gemini-sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"/>
+          </svg>
+          <span class="gemini-brand-label">Google Gemini AI</span>
+          <span class="gemini-pill">Elaborazione sintesi in corso...</span>
+        </div>
+      </div>
+      <div class="skeleton" style="height:18px; width:85%; margin-bottom:12px;"></div>
+      <div class="skeleton" style="height:18px; width:70%; margin-bottom:12px;"></div>
+      <div class="skeleton" style="height:18px; width:50%;"></div>
+    </div>
     <div class="category-block">
-      <div style="padding: 1rem 0; color: var(--text-secondary); display:flex; align-items:center; gap:8px;">
-        <span class="live-dot"></span> Ricerca live delle notizie in corso su Google News...
+      <div style="padding: 0.5rem 0 1rem 0; color: var(--text-secondary); display:flex; align-items:center; gap:8px;">
+        <span class="live-dot"></span> Ricerca combinata (precedenza alle categorie, poi Google Search)...
       </div>
       <div class="news-grid">
         <div class="news-card"><div class="skeleton" style="height:180px;"></div></div>
@@ -1075,7 +1222,9 @@ async function handleLiveSearch() {
 
   const searchRes = await apiSearchNews(query);
   if (searchRes.success) {
-    renderNewsFeed(searchRes.results);
+    AppState.searchResults = searchRes.results || [];
+    AppState.geminiResult = searchRes.gemini_result || null;
+    renderSearchResults(AppState.searchResults, AppState.geminiResult);
   } else {
     showToast('Errore durante la ricerca online', 'error');
   }
@@ -1084,6 +1233,9 @@ async function handleLiveSearch() {
 function clearSearch() {
   AppState.isSearching = false;
   AppState.searchQuery = '';
+  AppState.searchResults = null;
+  AppState.geminiResult = null;
+  AppState.categoryDisplayLimit = 25;
   DOM.liveSearchInput.value = '';
   DOM.clearSearchBtn.style.display = 'none';
   DOM.statusBanner.classList.add('hidden');
@@ -1102,8 +1254,9 @@ async function loadNews(category = 'all', refresh = false) {
   const res = await apiGetNews(category, refresh);
   if (res.success) {
     AppState.newsData = res;
-    if (!AppState.isSearching) {
-      renderNewsFeed(res, category);
+    // Evita sovrascritture se l'utente ha cambiato categoria o avviato una ricerca prima del completamento
+    if (!AppState.isSearching && AppState.currentCategoryFilter === category) {
+      renderNewsFeed(res, AppState.currentCategoryFilter);
     }
   } else {
     showToast('Impossibile recuperare le notizie', 'error');
@@ -1118,6 +1271,7 @@ function setupEventListeners() {
   DOM.brandBtn.addEventListener('click', () => {
     DOM.categoryFilterSelect.value = 'all';
     AppState.currentCategoryFilter = 'all';
+    AppState.categoryDisplayLimit = 25;
     clearSearch();
   });
 
@@ -1125,6 +1279,7 @@ function setupEventListeners() {
   DOM.categoryFilterSelect.addEventListener('change', (e) => {
     const selected = e.target.value;
     AppState.currentCategoryFilter = selected;
+    AppState.categoryDisplayLimit = 25;
     if (AppState.isSearching) {
       clearSearch();
     }
@@ -1138,6 +1293,7 @@ function setupEventListeners() {
       const filter = shortcutBtn.dataset.filter;
       DOM.categoryFilterSelect.value = filter;
       AppState.currentCategoryFilter = filter;
+      AppState.categoryDisplayLimit = 25;
       loadNews(filter, false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

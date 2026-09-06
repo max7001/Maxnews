@@ -112,7 +112,7 @@ DEFAULT_CATEGORIES = {
 }
 
 DEFAULT_SETTINGS = {
-    "version": "v1.3",
+    "version": "v1.4",
     "theme": "dark",
     "categories": DEFAULT_CATEGORIES
 }

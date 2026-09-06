@@ -1,4 +1,6 @@
 {
+  "theme": "dark",
+  "version": "v1.4",
   "categories": {
     "legnano": {
       "id": "legnano",
@@ -213,7 +215,5 @@
         }
       ]
     }
-  },
-  "theme": "dark",
-  "version": "v1.3"
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "total_reads": 4,
+  "total_searches": 8,
   "categories_reads": {
     "legnano": 3,
     "tecnologia": 0,
@@ -9,11 +9,6 @@
     "juventus": 1,
     "tesla": 0
   },
-  "total_searches": 2,
-  "recent_searches": [
-    "Tesla Cybercab",
-    "Tesla"
-  ],
   "recent_reads": [
     {
       "title": "Probabili formazioni Juve Milan: le possibili scelte di Spalletti per il big match dello Stadium",
@@ -39,5 +34,13 @@
       "source": "LegnanoNews",
       "timestamp": ""
     }
-  ]
+  ],
+  "recent_searches": [
+    "Google Pixel",
+    "pixel",
+    "juventus",
+    "Tesla Cybercab",
+    "Tesla"
+  ],
+  "total_reads": 4
 }
