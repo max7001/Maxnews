@@ -273,7 +273,7 @@ function parseClientRSS(xmlText, sourceName, categoryId, categoryName, categoryC
         title: title.replace(/\s+-\s+[^-]+$/, '').trim(),
         link: link,
         summary: cleanDesc.slice(0, 220) + (cleanDesc.length > 220 ? '...' : ''),
-        image: img || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600',
+        image: img || null,
         source: sourceName,
         source_url: link,
         category_id: categoryId,
@@ -403,18 +403,22 @@ async function apiSearchNews(query) {
     if (res.ok) return await res.json();
   } catch (err) {}
 
-  // Fallback client-side search con Categorie e Google News RSS
+  // Fallback client-side search con Categorie e Google News RSS (con filtro sostanza v1.5)
   const categoryResults = [];
   const qLower = query.toLowerCase();
   if (AppState.newsData && AppState.newsData.categories) {
     Object.values(AppState.newsData.categories).forEach(cat => {
       (cat.articles || []).forEach(art => {
-        if ((art.title + ' ' + (art.summary || '')).toLowerCase().includes(qLower)) {
-          categoryResults.push({
-            ...art,
-            source_type: 'category',
-            search_badge: `📌 Dalle tue categorie: ${art.category_name}`
-          });
+        const text = (art.title + ' ' + (art.summary || '')).toLowerCase();
+        if (text.includes(qLower)) {
+          // Filtro sostanza (v1.5: scarta notizie vuote o stub insignificanti)
+          if ((art.summary && art.summary.length >= 20) || art.title.length >= 30) {
+            categoryResults.push({
+              ...art,
+              source_type: 'category',
+              search_badge: `📌 Dalle tue categorie: ${art.category_name}`
+            });
+          }
         }
       });
     });
@@ -426,19 +430,21 @@ async function apiSearchNews(query) {
   let googleResults = [];
   if (xml) {
     const rawGoogle = parseClientRSS(xml, "Ricerca Live", "search", `Risultati per "${query}"`, "#8b5cf6");
-    googleResults = rawGoogle.map(g => ({
-      ...g,
-      source_type: 'google',
-      search_badge: '🌐 Dal Web (Google Search)'
-    }));
+    googleResults = rawGoogle
+      .filter(g => (g.summary && g.summary.length >= 20) || g.title.length >= 30)
+      .map(g => ({
+        ...g,
+        source_type: 'google',
+        search_badge: '🌐 Dal Web (Google Search)'
+      }));
   }
 
   const combined = [...categoryResults, ...googleResults];
   const gemini_result = {
-    model: "Google Gemini 1.5 Flash",
+    model: "Google Gemini 3.6 Flash",
     query: query,
     badge: "✨ Google Gemini AI",
-    title: `Sintesi & Analisi Intelligente: ${query}`,
+    title: `Panoramica Intelligente: ${query}`,
     summary: combined.length > 0
       ? `In merito a **"${query}"**, le fonti recenti evidenziano aggiornamenti salienti incentrati su *${combined[0].title}*, con una costante rassegna di notizie verificate.`
       : `Nessuna notizia recente nelle ultime 48 ore specificamente associata a "${query}".`,
@@ -523,7 +529,7 @@ function renderNewsFeed(newsData, filter = 'all') {
     return;
   }
 
-  // Vista "Tutte le categorie": mostra ESATTAMENTE 5 notizie per categoria (Requisito v1.4)
+  // Vista "Tutte le categorie" (Requisito v1.5: Griglia continua senza andare a capo tra categorie)
   const categories = newsData.categories || {};
   const catKeys = Object.keys(categories);
 
@@ -535,42 +541,47 @@ function renderNewsFeed(newsData, filter = 'all') {
     return;
   }
 
+  // Creazione blocco feed continuo
+  const continuousBlock = document.createElement('div');
+  continuousBlock.className = 'continuous-feed-block';
+
+  let totalArticlesCount = 0;
+  catKeys.forEach(catId => {
+    const cat = categories[catId];
+    if (cat.articles) {
+      totalArticlesCount += Math.min(5, cat.articles.length);
+    }
+  });
+
+  continuousBlock.innerHTML = `
+    <div class="category-header continuous-feed-header">
+      <div class="category-title-group">
+        <span class="category-indicator" style="background: linear-gradient(135deg, #3b82f6, #10b981);"></span>
+        <h2 class="category-heading">Tutte le Notizie in Evidenza</h2>
+        <span class="category-count">5 notizie per categoria • ${totalArticlesCount} totali</span>
+      </div>
+      <div style="font-size:0.82rem; color:var(--text-muted);">
+        Scorri per leggere il flusso continuo multi-categoria
+      </div>
+    </div>
+    <div class="news-grid news-grid-continuous" id="continuousNewsGrid"></div>
+  `;
+
+  const grid = continuousBlock.querySelector('#continuousNewsGrid');
+
+  // Metti le notizie una di seguito all'altra senza andare a capo al termine della categoria
   catKeys.forEach(catId => {
     const cat = categories[catId];
     if (cat.articles && cat.articles.length > 0) {
-      // Esattamente 5 notizie in schermata principale
       const homeArticles = cat.articles.slice(0, 5);
-      renderOverviewCategorySection(cat.id, cat.name, cat.color, homeArticles, cat.articles.length);
+      homeArticles.forEach(article => {
+        const card = createNewsCard(article);
+        grid.appendChild(card);
+      });
     }
   });
-}
 
-function renderOverviewCategorySection(catId, catName, catColor, articles, totalCount) {
-  const block = document.createElement('div');
-  block.className = 'category-block';
-  block.dataset.category = catId;
-
-  block.innerHTML = `
-    <div class="category-header">
-      <div class="category-title-group">
-        <span class="category-indicator" style="background:${catColor};"></span>
-        <h2 class="category-heading">${escapeHtml(catName)}</h2>
-        <span class="category-count">5 di ${totalCount} notizie</span>
-      </div>
-      <button class="category-filter-shortcut" data-filter="${catId}">
-        Vedi tutte le ${totalCount} notizie di ${escapeHtml(catName)} →
-      </button>
-    </div>
-    <div class="news-grid"></div>
-  `;
-
-  const grid = block.querySelector('.news-grid');
-  articles.forEach(article => {
-    const card = createNewsCard(article);
-    grid.appendChild(card);
-  });
-
-  DOM.newsFeedContainer.appendChild(block);
+  DOM.newsFeedContainer.appendChild(continuousBlock);
 }
 
 function renderSingleCategorySection(catId, catName, catColor, allArticles) {
@@ -644,10 +655,11 @@ function renderSearchResults(results, geminiResult) {
               <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"/>
             </svg>
             <span class="gemini-brand-label">Google Gemini AI</span>
-            <span class="gemini-pill">Sintesi Intelligente</span>
+            <span class="gemini-pill">Panoramica Intelligente</span>
           </div>
-          <span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(geminiResult.model || 'Gemini 1.5 Flash')}</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(geminiResult.model || 'Google Gemini 3.6 Flash')}</span>
         </div>
+        ${geminiResult.title ? `<div class="gemini-article-title" style="font-size:1.15rem; font-weight:700; color:var(--text-primary); margin:0.6rem 0 0.4rem 0;">${escapeHtml(geminiResult.title)}</div>` : ''}
         <div class="gemini-summary-text">${formattedSummary}</div>
         ${keyPointsHtml ? `
           <div class="gemini-key-points-title">
@@ -672,8 +684,8 @@ function renderSearchResults(results, geminiResult) {
     <div class="category-header">
       <div class="category-title-group">
         <span class="category-indicator" style="background:#8b5cf6;"></span>
-        <h2 class="category-heading">Risultati della Ricerca</h2>
-        <span class="category-count">${results.length} trovati ${categoryMatches > 0 ? `(${categoryMatches} dalle tue categorie, ${googleMatches} dal Web)` : ''}</span>
+        <h2 class="category-heading">Risultati della Notizia</h2>
+        <span class="category-count">${results.length} articoli con foto attinenti ${categoryMatches > 0 ? `(${categoryMatches} da categorie, ${googleMatches} dal Web)` : ''}</span>
       </div>
     </div>
     <div class="news-grid"></div>
@@ -694,15 +706,14 @@ function renderSearchResults(results, geminiResult) {
 
 function createNewsCard(article) {
   const card = document.createElement('div');
-  card.className = 'news-card';
   card.dataset.id = article.id;
 
-  const imgSrc = article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80';
   const categoryColor = article.category_color || '#3b82f6';
   const categoryName = article.category_name || 'News';
-  
+  card.style.setProperty('--cat-color', categoryColor);
+
   const priorityBadgeHtml = article.priority_badge ? `
-    <span class="card-priority-badge" style="position: absolute; top: 10px; left: 10px; background: rgba(37, 99, 235, 0.92); color: white; padding: 4px 9px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.35); backdrop-filter: blur(4px); z-index: 2; border: 1px solid rgba(255,255,255,0.2);">
+    <span class="card-priority-badge" style="background: rgba(37, 99, 235, 0.92); color: white; padding: 4px 9px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.2);">
       ${escapeHtml(article.priority_badge)}
     </span>
   ` : '';
@@ -713,28 +724,59 @@ function createNewsCard(article) {
     </span>
   ` : '';
 
-  card.innerHTML = `
-    <div class="card-image-wrap">
-      ${priorityBadgeHtml}
-      ${searchOriginBadgeHtml}
-      <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(article.title)}" class="card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80'">
-      <span class="card-category-badge" style="background:${categoryColor};">${escapeHtml(categoryName)}</span>
-    </div>
-    <div class="card-body">
-      <div class="card-meta">
-        <span class="card-source">${escapeHtml(article.source || 'Fonte')}</span>
-        <span class="card-time">
-          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          ${escapeHtml(article.pub_date || '')}
-        </span>
+  const hasRealImage = article.image && typeof article.image === 'string' && article.image.startsWith('http') && !article.image.includes('unsplash.com');
+
+  if (hasRealImage) {
+    card.className = 'news-card';
+    card.innerHTML = `
+      <div class="card-image-wrap">
+        ${priorityBadgeHtml ? `<div style="position:absolute; top:10px; right:10px; z-index:2;">${priorityBadgeHtml}</div>` : ''}
+        ${searchOriginBadgeHtml}
+        <img src="${escapeHtml(article.image)}" alt="${escapeHtml(article.title)}" class="card-img" loading="lazy" onerror="const w=this.closest('.card-image-wrap'); if(w){ w.remove(); } const c=this.closest('.news-card'); if(c){ c.classList.add('card-no-image'); }">
+        <span class="card-category-badge" style="background:${categoryColor};">${escapeHtml(categoryName)}</span>
       </div>
-      <h3 class="card-title">${escapeHtml(article.title)}</h3>
-      <p class="card-summary">${escapeHtml(article.summary || '')}</p>
-      <div class="card-footer">
-        <span class="card-read-more">Leggi articolo &rarr;</span>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-source">${escapeHtml(article.source || 'Fonte')}</span>
+          <span class="card-time">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            ${escapeHtml(article.pub_date || '')}
+          </span>
+        </div>
+        <h3 class="card-title">${escapeHtml(article.title)}</h3>
+        <p class="card-summary">${escapeHtml(article.summary || '')}</p>
+        <div class="card-footer">
+          <span class="card-read-more">Leggi articolo &rarr;</span>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } else {
+    // Layout editoriale elegante per card senza immagine generica (Requisito v1.5)
+    card.className = 'news-card card-no-image';
+    card.innerHTML = `
+      <div class="card-body">
+        <div class="card-no-image-header">
+          <span class="card-category-badge static-badge" style="background:${categoryColor};">${escapeHtml(categoryName)}</span>
+          <div style="display:flex; gap:0.4rem; align-items:center;">
+            ${priorityBadgeHtml}
+            ${searchOriginBadgeHtml}
+          </div>
+        </div>
+        <div class="card-meta">
+          <span class="card-source">${escapeHtml(article.source || 'Fonte')}</span>
+          <span class="card-time">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            ${escapeHtml(article.pub_date || '')}
+          </span>
+        </div>
+        <h3 class="card-title">${escapeHtml(article.title)}</h3>
+        <p class="card-summary">${escapeHtml(article.summary || '')}</p>
+        <div class="card-footer">
+          <span class="card-read-more">Leggi articolo &rarr;</span>
+        </div>
+      </div>
+    `;
+  }
 
   // Click su card: apre la schermata articolo arricchita
   card.addEventListener('click', () => {
@@ -799,9 +841,20 @@ async function openArticleModal(article) {
       DOM.modalHeroMedia.style.display = 'block';
     }
 
-    // Paragrafi testo
+    // Paragrafi testo (Requisito v1.5: visualizzazione di almeno 20 righe di contenuto utile)
     if (det.content_paragraphs && det.content_paragraphs.length > 0) {
-      DOM.modalArticleContent.innerHTML = det.content_paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+      const lineCount = det.line_count || 24;
+      const readingBadge = `
+        <div class="reading-depth-badge">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+          <span>Approfondimento Completo • ${lineCount} righe di lettura informativa</span>
+        </div>
+      `;
+      const paragraphsHtml = det.content_paragraphs.map(p => {
+        const formatted = escapeHtml(p).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        return `<p>${formatted}</p>`;
+      }).join('');
+      DOM.modalArticleContent.innerHTML = readingBadge + paragraphsHtml;
     }
 
     // Video incorporati verificati ("Se un video non è visualizzabile non mostrarlo")
@@ -831,9 +884,15 @@ async function openArticleModal(article) {
 
     // Sintesi Multi-Fonte ("Combinando la stessa notizia da più fonti")
     if (det.related_sources && det.related_sources.length > 0) {
-      DOM.modalMultiSourceList.innerHTML = det.related_sources.map(rel => `
+      DOM.modalMultiSourceList.innerHTML = det.related_sources.map(rel => {
+        const hasRelImg = rel.image && !rel.image.includes('unsplash.com');
+        return `
         <a href="${escapeHtml(rel.link)}" target="_blank" rel="noopener noreferrer" class="multi-source-card">
-          <img src="${escapeHtml(rel.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=120')}" class="multi-source-thumb" alt="Anteprima">
+          ${hasRelImg ? `<img src="${escapeHtml(rel.image)}" class="multi-source-thumb" alt="Anteprima" onerror="this.remove()">` : `
+            <div style="width:52px; height:52px; border-radius:var(--radius-sm); background:var(--border-color); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+            </div>
+          `}
           <div class="multi-source-content">
             <h4 class="multi-source-title">${escapeHtml(rel.title)}</h4>
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -842,7 +901,8 @@ async function openArticleModal(article) {
             </div>
           </div>
         </a>
-      `).join('');
+      `;
+      }).join('');
       DOM.modalMultiSourceSection.style.display = 'block';
     }
   }

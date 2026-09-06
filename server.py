@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 from typing import Optional, Dict, Any
 from fastapi import FastAPI, Query, HTTPException, Body
@@ -15,7 +16,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("maxnews.server")
 
-app = FastAPI(title="MaxNews API", version="1.4")
+app = FastAPI(title="MaxNews API", version="1.6")
 
 # Abilita CORS per flessibilità (anche se servito localmente)
 app.add_middleware(
@@ -33,7 +34,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 async def get_app_settings():
     """Restituisce le impostazioni dell'app salvate su Firebase Firestore."""
     settings = await firebase_service.get_settings()
-    settings["version"] = "v1.4"
+    settings["version"] = "v1.6"
     return {"success": True, "settings": settings}
 
 
@@ -43,8 +44,8 @@ async def update_app_settings(settings: Dict[str, Any] = Body(...)):
     if not settings:
         raise HTTPException(status_code=400, detail="Dati impostazioni non validi")
     
-    # Assicuriamo che la versione v1.4 sia impostata
-    settings["version"] = "v1.4"
+    # Assicuriamo che la versione v1.6 sia impostata
+    settings["version"] = "v1.6"
         
     ok = await firebase_service.save_settings(settings)
     # Svuota la cache delle notizie per riflettere le nuove fonti/categorie
@@ -100,13 +101,15 @@ async def get_news(category: Optional[str] = None, refresh: bool = False):
 async def search_news(q: str = Query(..., min_length=1)):
     """
     Esegue una ricerca multi-tier con precedenza alle notizie delle categorie
-    seguite da Google News / web search, e genera la sintesi intelligente Google Gemini.
+    seguite da Google News / web search, e genera la panoramica generica con Google Gemini 3.6 Flash.
+    Esegue la ricerca articoli e l'elaborazione AI in parallelo con asyncio.gather.
     """
     settings = await firebase_service.get_settings()
     categories = settings.get("categories", {})
 
-    search_data = await news_service.search_news_multi_tier(q, categories)
-    gemini_result = await news_service.generate_gemini_briefing(q, search_data["combined"])
+    search_task = asyncio.create_task(news_service.search_news_multi_tier(q, categories))
+    gemini_task = asyncio.create_task(news_service.generate_gemini_briefing(q, []))
+    search_data, gemini_result = await asyncio.gather(search_task, gemini_task)
 
     # Registra ricerca nelle statistiche su Firebase
     await firebase_service.track_search(q)

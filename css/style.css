@@ -538,6 +538,70 @@ body {
   gap: 4px;
 }
 
+/* Card senza foto generiche (Requisito v1.5) */
+.news-card.card-no-image {
+  border-top: 3.5px solid var(--cat-color, #3b82f6);
+  min-height: 230px;
+}
+
+.news-card.card-no-image .card-no-image-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.news-card.card-no-image .static-badge {
+  position: static !important;
+  display: inline-block;
+  box-shadow: none !important;
+}
+
+.news-card.card-no-image .card-title {
+  font-size: 1.15rem;
+  line-height: 1.4;
+  -webkit-line-clamp: 4;
+}
+
+.news-card.card-no-image .card-summary {
+  -webkit-line-clamp: 4;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Griglia Continua Schermata Principale (Requisito v1.5: nessun a capo tra categorie) */
+.continuous-feed-block {
+  margin-bottom: 3rem;
+}
+
+.continuous-feed-header {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.news-grid-continuous {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.reading-depth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 5px 12px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
 /* ==========================================================================
    MODALI: ARCHITETTURA COMUNE
    ========================================================================== */
@@ -1440,6 +1504,14 @@ input:checked + .slider:before {
   background: rgba(139, 92, 246, 0.2);
   color: #c084fc;
   border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.gemini-article-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0.6rem 0 0.5rem 0;
+  letter-spacing: -0.01em;
 }
 
 .gemini-summary-text {

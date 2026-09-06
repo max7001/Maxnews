@@ -1,15 +1,33 @@
 {
-  "total_searches": 8,
+  "total_searches": 19,
   "categories_reads": {
-    "legnano": 3,
+    "legnano": 6,
     "tecnologia": 0,
     "cronaca_italia": 0,
     "cronaca_estera": 0,
     "economia": 0,
     "juventus": 1,
-    "tesla": 0
+    "tesla": 3
   },
   "recent_reads": [
+    {
+      "title": "Tesla Cybercab: tecnica, interni e freni Brembo | Quattroruote.it",
+      "category": "tesla",
+      "source": "Google News Tesla",
+      "timestamp": ""
+    },
+    {
+      "title": "Tesla Cybercab ad Austin: come funziona il robotaxi e come prenotarlo.",
+      "category": "tesla",
+      "source": "Google News Tesla",
+      "timestamp": ""
+    },
+    {
+      "title": "A Legnano, il 5 e 6 settembre, torna lo \"Sbaracco\" per lo shopping di fine stagione",
+      "category": "legnano",
+      "source": "Google News Legnano",
+      "timestamp": ""
+    },
     {
       "title": "Probabili formazioni Juve Milan: le possibili scelte di Spalletti per il big match dello Stadium",
       "category": "juventus",
@@ -36,11 +54,11 @@
     }
   ],
   "recent_searches": [
+    "Tesla",
     "Google Pixel",
     "pixel",
     "juventus",
-    "Tesla Cybercab",
-    "Tesla"
+    "Tesla Cybercab"
   ],
-  "total_reads": 4
+  "total_reads": 10
 }
