@@ -1,0 +1,195 @@
+{
+  "categories": {
+    "legnano": {
+      "id": "legnano",
+      "name": "Legnano",
+      "enabled": true,
+      "color": "#16a34a",
+      "icon": "map-pin",
+      "sources": [
+        {
+          "id": "legnanonews",
+          "name": "LegnanoNews",
+          "url": "https://www.legnanonews.com/feed/",
+          "enabled": true
+        },
+        {
+          "id": "sempionenews",
+          "name": "Sempione News",
+          "url": "https://www.sempionenews.it/feed/",
+          "enabled": true
+        },
+        {
+          "id": "primamilanoovest",
+          "name": "Prima Milano Ovest",
+          "url": "https://primamilanoovest.it/feed/",
+          "enabled": true
+        }
+      ]
+    },
+    "tecnologia": {
+      "id": "tecnologia",
+      "name": "Tecnologia",
+      "enabled": true,
+      "color": "#2563eb",
+      "icon": "cpu",
+      "sources": [
+        {
+          "id": "hdblog",
+          "name": "HDblog",
+          "url": "https://www.hdblog.it/feed/",
+          "enabled": true
+        },
+        {
+          "id": "wired",
+          "name": "Wired Italia",
+          "url": "https://www.wired.it/feed/rss",
+          "enabled": true
+        },
+        {
+          "id": "tomshw",
+          "name": "Tom's Hardware",
+          "url": "https://www.tomshw.it/feed/",
+          "enabled": true
+        }
+      ]
+    },
+    "cronaca_italia": {
+      "id": "cronaca_italia",
+      "name": "Cronaca italiana",
+      "enabled": true,
+      "color": "#dc2626",
+      "icon": "flag",
+      "sources": [
+        {
+          "id": "ansa_cronaca",
+          "name": "ANSA Cronaca",
+          "url": "https://www.ansa.it/sito/ansait_rss.xml",
+          "enabled": true
+        },
+        {
+          "id": "tgcom24",
+          "name": "TGCOM24 Cronaca",
+          "url": "https://www.tgcom24.mediaset.it/rss/cronaca.xml",
+          "enabled": true
+        },
+        {
+          "id": "rainews",
+          "name": "RaiNews",
+          "url": "https://www.rainews.it/rss/tutti",
+          "enabled": true
+        }
+      ]
+    },
+    "cronaca_estera": {
+      "id": "cronaca_estera",
+      "name": "Cronaca estera",
+      "enabled": true,
+      "color": "#0891b2",
+      "icon": "globe",
+      "sources": [
+        {
+          "id": "ansa_mondo",
+          "name": "ANSA Mondo",
+          "url": "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml",
+          "enabled": true
+        },
+        {
+          "id": "euronews",
+          "name": "Euronews Italiano",
+          "url": "https://it.euronews.com/rss",
+          "enabled": true
+        },
+        {
+          "id": "bbc",
+          "name": "BBC News",
+          "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
+          "enabled": true
+        }
+      ]
+    },
+    "economia": {
+      "id": "economia",
+      "name": "Economia",
+      "enabled": true,
+      "color": "#059669",
+      "icon": "trending-up",
+      "sources": [
+        {
+          "id": "ilsole24ore",
+          "name": "Il Sole 24 Ore",
+          "url": "https://www.ilsole24ore.com/rss/economia.xml",
+          "enabled": true
+        },
+        {
+          "id": "ansa_economia",
+          "name": "ANSA Economia",
+          "url": "https://www.ansa.it/sito/notizie/economia/economia_rss.xml",
+          "enabled": true
+        },
+        {
+          "id": "milanofinanza",
+          "name": "Milano Finanza",
+          "url": "https://www.milanofinanza.it/rss",
+          "enabled": true
+        }
+      ]
+    },
+    "juventus": {
+      "id": "juventus",
+      "name": "Juventus",
+      "enabled": true,
+      "color": "#18181b",
+      "icon": "shield",
+      "sources": [
+        {
+          "id": "tuttojuve",
+          "name": "TuttoJuve",
+          "url": "https://www.tuttojuve.com/rss",
+          "enabled": true
+        },
+        {
+          "id": "juventusnews24",
+          "name": "JuventusNews24",
+          "url": "https://www.juventusnews24.com/feed/",
+          "enabled": true
+        },
+        {
+          "id": "googlenews_juve",
+          "name": "Google News Juve",
+          "url": "https://news.google.com/rss/search?q=Juventus&hl=it&gl=IT&ceid=IT:it",
+          "enabled": true
+        }
+      ]
+    },
+    "tesla": {
+      "id": "tesla",
+      "name": "Tesla",
+      "enabled": true,
+      "color": "#e11d48",
+      "icon": "zap",
+      "sources": [
+        {
+          "id": "insideevs",
+          "name": "InsideEVs Italia",
+          "url": "https://it.insideevs.com/rss/news/all/",
+          "enabled": true
+        },
+        {
+          "id": "electrek_tesla",
+          "name": "Electrek Tesla",
+          "url": "https://electrek.co/guides/tesla/feed/",
+          "enabled": true
+        },
+        {
+          "id": "googlenews_tesla",
+          "name": "Google News Tesla",
+          "url": "https://news.google.com/rss/search?q=Tesla+auto&hl=it&gl=IT&ceid=IT:it",
+          "enabled": true
+        }
+      ]
+    }
+  },
+  "version": "v1.0",
+  "theme": "dark"
+}

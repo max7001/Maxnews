@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MaxNews">
+  <meta name="theme-color" content="#0b0f19">
+  <title>MaxNews - Le Notizie Principali in Tempo Reale</title>
+  <meta name="description" content="Aggregatore intelligente di notizie dalle principali fonti con ricerca live online e sintesi multimediale.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'><path d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z'/></svg>">
+</head>
+<body>
+
+  <!-- =========================================================================
+       HEADER SUPERIORE & FILTRI
+       ========================================================================= -->
+  <header class="header-sticky">
+    <div class="topbar-container">
+      
+      <!-- Brand / Logo -->
+      <div class="brand-section" id="brandBtn">
+        <div class="brand-logo">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-title">MaxNews</span>
+          <div class="live-pill">
+            <span class="live-dot"></span> Live Feed
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtro Categorie a tendina e Azioni -->
+      <div class="topbar-actions">
+        <!-- Filtro Categoria a tendina nella barra superiore -->
+        <select id="categoryFilterSelect" class="category-dropdown-select" title="Filtra per categoria">
+          <option value="all">📰 Tutte le categorie</option>
+          <option value="legnano">📍 Legnano</option>
+          <option value="tecnologia">💻 Tecnologia</option>
+          <option value="cronaca_italia">🇮🇹 Cronaca italiana</option>
+          <option value="cronaca_estera">🌍 Cronaca estera</option>
+          <option value="economia">📈 Economia</option>
+          <option value="juventus">⚽ Juventus</option>
+          <option value="tesla">⚡ Tesla</option>
+        </select>
+
+        <!-- Icona Statistiche (Mandatoria Regola 3) -->
+        <button id="statsModalBtn" class="icon-btn" data-tooltip="Statistiche d'uso" aria-label="Statistiche">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </button>
+
+        <!-- Icona Settings (Mandatoria Regola 3) -->
+        <button id="settingsModalBtn" class="icon-btn" data-tooltip="Impostazioni" aria-label="Impostazioni">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </button>
+
+        <!-- Ricarica Rapida -->
+        <button id="refreshNewsBtn" class="icon-btn" data-tooltip="Aggiorna notizie" aria-label="Ricarica">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       BARRA DI RICERCA ONLINE IN TEMPO REALE
+       ========================================================================= -->
+  <div class="search-strip">
+    <div class="search-box-wrapper">
+      <svg class="search-icon-left" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      <input type="text" id="liveSearchInput" class="search-input" placeholder="Chiedi o cerca qualsiasi argomento in tempo reale online (es. Palio di Legnano, Elon Musk, Sanremo, Champions League...)" autocomplete="off">
+      <div class="search-actions-right">
+        <button id="clearSearchBtn" class="search-clear-btn" title="Cancella ricerca">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        <button id="submitSearchBtn" class="search-submit-btn">Cerca Live</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       CORPO PRINCIPALE (NEWS FEED)
+       ========================================================================= -->
+  <main class="main-container">
+    
+    <!-- Banner di stato (es. per ricerca o filtri attivi) -->
+    <div id="statusBanner" class="status-banner hidden">
+      <div class="status-info">
+        <span id="statusIcon">🔍</span>
+        <span id="statusMessage">Risultati della ricerca</span>
+      </div>
+      <button id="resetViewBtn" class="btn-sm">Ripristina visualizzazione predefinita</button>
+    </div>
+
+    <!-- Contenitore Notizie per Categoria -->
+    <div id="newsFeedContainer">
+      <!-- Loading iniziale -->
+      <div class="category-block">
+        <div class="skeleton" style="height: 32px; width: 220px; margin-bottom: 1.5rem;"></div>
+        <div class="news-grid">
+          <div class="news-card">
+            <div class="skeleton" style="height: 180px;"></div>
+            <div style="padding: 1rem;">
+              <div class="skeleton" style="height: 18px; width: 60%; margin-bottom: 10px;"></div>
+              <div class="skeleton" style="height: 24px; width: 95%; margin-bottom: 10px;"></div>
+              <div class="skeleton" style="height: 14px; width: 80%;"></div>
+            </div>
+          </div>
+          <div class="news-card">
+            <div class="skeleton" style="height: 180px;"></div>
+            <div style="padding: 1rem;">
+              <div class="skeleton" style="height: 18px; width: 50%; margin-bottom: 10px;"></div>
+              <div class="skeleton" style="height: 24px; width: 90%; margin-bottom: 10px;"></div>
+              <div class="skeleton" style="height: 14px; width: 75%;"></div>
+            </div>
+          </div>
+          <div class="news-card">
+            <div class="skeleton" style="height: 180px;"></div>
+            <div style="padding: 1rem;">
+              <div class="skeleton" style="height: 18px; width: 55%; margin-bottom: 10px;"></div>
+              <div class="skeleton" style="height: 24px; width: 85%; margin-bottom: 10px;"></div>
+              <div class="skeleton" style="height: 14px; width: 70%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       MODALE 1: SCHERMATA NOTIZIA COMPLETA (TESTO, FOTO, VIDEO, MULTI-FONTE)
+       ========================================================================= -->
+  <div id="articleModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-window large">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span id="modalCategoryBadge" class="article-category-badge" style="background:#2563eb;">Categoria</span>
+          <span id="modalSourceBadge" class="article-source-tag">Fonte</span>
+          <span id="modalPubDate" style="font-size:0.8rem; color:var(--text-muted);">Data</span>
+        </div>
+        <button id="closeArticleModalBtn" class="modal-close-btn" aria-label="Chiudi">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Titolo Completo -->
+        <h1 id="modalArticleTitle" class="article-hero-title">Titolo della Notizia</h1>
+
+        <!-- Immagine Hero -->
+        <div id="modalHeroMedia" class="article-hero-media">
+          <img id="modalHeroImg" src="" alt="Notizia" onerror="this.style.display='none'">
+        </div>
+
+        <!-- Sezione Video Incorporati / Filmati Correlati -->
+        <div id="modalVideoSection" class="article-media-section" style="display:none;">
+          <div class="section-label">
+            <svg width="20" height="20" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span id="modalVideoLabel">Filmato e Approfondimento Video</span>
+          </div>
+          <div class="video-player-container">
+            <iframe id="modalVideoIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+        </div>
+
+        <!-- Testo dell'articolo completo -->
+        <div id="modalArticleContent" class="article-text-body">
+          <p>Caricamento articolo...</p>
+        </div>
+
+        <!-- Galleria Immagini aggiuntive -->
+        <div id="modalGallerySection" style="display:none; margin-bottom: 1.5rem;">
+          <div class="section-label">
+            <svg width="20" height="20" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>Fotografie & Immagini Correlate</span>
+          </div>
+          <div id="modalGalleryGrid" class="article-gallery-grid"></div>
+        </div>
+
+        <!-- SINTESI MULTI-FONTE: Notizia combinata da più fonti -->
+        <div id="modalMultiSourceSection" class="multi-source-box" style="display:none;">
+          <div class="multi-source-header">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            <span>Copertura da Altre Fonti (Sintesi Multi-Fonte)</span>
+          </div>
+          <p class="multi-source-desc">Questa notizia è stata trattata anche da altre testate. Esplora i diversi punti di vista e angolazioni:</p>
+          <div id="modalMultiSourceList" class="multi-source-list"></div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <a id="modalSourceLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          <span>Apri articolo originale sulla fonte</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+        </a>
+        <button id="closeArticleFooterBtn" class="btn-secondary">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODALE 2: SETTINGS (IMPOSTAZIONI, FONTI, TENDINA COMPRESSA, VERSIONE v1.0)
+       ========================================================================= -->
+  <div id="settingsModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg width="24" height="24" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+          <h2 class="modal-title">Impostazioni MaxNews</h2>
+        </div>
+        <button id="closeSettingsModalBtn" class="modal-close-btn" aria-label="Chiudi">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.25rem;">
+          Configura quali categorie di notizie visualizzare nella schermata principale e gestisci i siti web/fonti associati a ciascuna. I dati sono sincronizzati in modo sicuro su Firebase Firestore.
+        </p>
+
+        <!-- MENU A TENDINA COMPRESSO DI DEFAULT (Richiesto specificamente) -->
+        <div id="categoriesAccordion" class="settings-accordion">
+          <div id="categoriesAccordionHeader" class="accordion-header">
+            <div class="accordion-title">
+              <svg width="18" height="18" fill="none" stroke="#8b5cf6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+              <span>Seleziona Categorie da Mostrare & Gestisci Fonti</span>
+            </div>
+            <svg class="accordion-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+
+          <!-- Contenuto espandibile -->
+          <div class="accordion-content">
+            <div id="categoriesConfigList" class="categories-config-list">
+              <!-- Riempito dinamicamente da JS per Legnano, Tecnologia, Cronaca italiana, Cronaca estera, Economia, Juventus, Tesla -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FOOTER SETTINGS: VERSIONE OBBLIGATORIA v1.1 (Regola 3) -->
+      <div class="modal-footer">
+        <div class="app-version-badge" title="Versione dell'applicazione">
+          <span>Versione:</span>
+          <span class="version-pill">v1.1</span>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+          <button id="resetSettingsBtn" class="btn-secondary" title="Ripristina valori iniziali">Ripristina Default</button>
+          <button id="saveSettingsBtn" class="btn-primary">Salva su Firebase</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODALE 3: STATISTICHE (METRICHE D'USO PERTINENTI, MANDATORIA REGOLA 3)
+       ========================================================================= -->
+  <div id="statsModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg width="24" height="24" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          <h2 class="modal-title">Statistiche d'Uso & Metriche</h2>
+        </div>
+        <button id="closeStatsModalBtn" class="modal-close-btn" aria-label="Chiudi">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Schede contatori -->
+        <div class="stats-cards-grid">
+          <div class="stat-card">
+            <div class="stat-icon-wrap" style="background:rgba(59, 130, 246, 0.15); color:#3b82f6;">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            </div>
+            <div>
+              <div id="statTotalReads" class="stat-value">0</div>
+              <div class="stat-label">Articoli Consultati</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap" style="background:rgba(139, 92, 246, 0.15); color:#8b5cf6;">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <div>
+              <div id="statTotalSearches" class="stat-value">0</div>
+              <div class="stat-label">Ricerche Live Online</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap" style="background:rgba(16, 185, 129, 0.15); color:#10b981;">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <div>
+              <div id="statActiveCategories" class="stat-value">7</div>
+              <div class="stat-label">Categorie Attive</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grafico Consultazione Categorie -->
+        <div class="stats-chart-card">
+          <div class="section-label">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+            <span>Distribuzione Letture per Categoria</span>
+          </div>
+          <div id="statsCategoriesChart">
+            <!-- Barre di progressione riempite dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Notizie lette di recente -->
+        <div class="recent-activity-card">
+          <div class="section-label">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>Ultime Notizie Consultate</span>
+          </div>
+          <div id="recentReadsList" class="recent-activity-list">
+            <div style="color:var(--text-muted); font-size:0.85rem;">Nessuna notizia ancora letta. Clicca su una notizia per aprirla!</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <span style="font-size:0.75rem; color:var(--text-muted);">
+          Persistenza dati: <strong>Firebase Firestore (app-create-con-ai)</strong>
+        </span>
+        <button id="closeStatsFooterBtn" class="btn-secondary">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenitore Toast notifiche -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
